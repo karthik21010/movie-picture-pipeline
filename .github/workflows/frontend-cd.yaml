@@ -148,69 +148,48 @@ jobs:
   # DEPLOY TO EKS
   # ============================================================
   deploy:
-    name: Deploy Frontend to EKS
-    runs-on: ubuntu-latest
+  name: Deploy Frontend to EKS
+  runs-on: ubuntu-latest
+  needs:
+    - build
 
-    needs:
-      - build
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v6.2.3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        unset-current-credentials: true
 
+    - name: Check AWS identity
+      run: |
+        aws sts get-caller-identity
 
-      # --------------------------------------------------------
-      # Configure AWS credentials
-      # --------------------------------------------------------
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig \
+          --name "${{ env.EKS_CLUSTER }}" \
+          --region "${{ env.AWS_REGION }}"
 
+    - name: Check Kubernetes files
+      run: |
+        echo "Kubernetes files:"
+        ls -la k8s
 
-      # --------------------------------------------------------
-      # Verify AWS credentials
-      # --------------------------------------------------------
-      - name: Check AWS identity
-        run: |
-          aws sts get-caller-identity
+    - name: Update frontend image
+      run: |
+        sed -i \
+          "s|image:.*|image: 509716464406.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" \
+          k8s/frontend.yaml
 
+    - name: Deploy frontend to EKS
+      run: |
+        kubectl apply -f k8s/frontend.yaml
 
-      # --------------------------------------------------------
-      # Configure kubectl for EKS
-      # --------------------------------------------------------
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig \
-            --name "${{ env.EKS_CLUSTER }}" \
-            --region "${{ env.AWS_REGION }}"
-
-
-      # --------------------------------------------------------
-      # Update Kubernetes deployment with current image
-      # --------------------------------------------------------
-      - name: Update frontend image
-        working-directory: starter/frontend/k8s
-        run: |
-          sed -i \
-            "s|image:.*|image: 509716464406.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" \
-            deployment.yaml
-
-
-      # --------------------------------------------------------
-      # Deploy application to EKS
-      # --------------------------------------------------------
-      - name: Deploy to EKS
-        working-directory: starter/frontend/k8s
-        run: |
-          kubectl apply -k .
-
-
-      # --------------------------------------------------------
-      # Verify deployment
-      # --------------------------------------------------------
-      - name: Verify deployment
-        run: |
-          kubectl rollout status deployment/frontend --timeout=180s
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/frontend --timeout=180s
