@@ -15,7 +15,7 @@ env:
 jobs:
 
   # ============================================================
-  # LINT
+  # LINT FRONTEND
   # ============================================================
   lint:
     name: Lint Frontend
@@ -44,7 +44,7 @@ jobs:
 
 
   # ============================================================
-  # TEST
+  # TEST FRONTEND
   # ============================================================
   test:
     name: Test Frontend
@@ -73,7 +73,7 @@ jobs:
 
 
   # ============================================================
-  # BUILD + PUSH TO ECR
+  # BUILD AND PUSH TO ECR
   # ============================================================
   build:
     name: Build and Push Frontend
@@ -87,10 +87,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-
-      # --------------------------------------------------------
-      # Build Docker image
-      # --------------------------------------------------------
       - name: Build Docker image
         working-directory: starter/frontend
         run: |
@@ -99,37 +95,22 @@ jobs:
             --tag "${{ env.ECR_REPOSITORY }}:${{ github.sha }}" \
             .
 
-
-      # --------------------------------------------------------
-      # Configure AWS credentials
-      # --------------------------------------------------------
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          unset-current-credentials: true
 
-
-      # --------------------------------------------------------
-      # Verify AWS credentials
-      # --------------------------------------------------------
       - name: Check AWS identity
         run: |
           aws sts get-caller-identity
 
-
-      # --------------------------------------------------------
-      # Login to Amazon ECR
-      # --------------------------------------------------------
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-
-      # --------------------------------------------------------
-      # Tag and push Docker image
-      # --------------------------------------------------------
       - name: Tag and push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -143,51 +124,52 @@ jobs:
 
 
   # ============================================================
-  # DEPLOY TO EKS
+  # DEPLOY FRONTEND TO EKS
   # ============================================================
   deploy:
-  name: Deploy Frontend to EKS
-  runs-on: ubuntu-latest
-  needs:
-    - build
+    name: Deploy Frontend to EKS
+    runs-on: ubuntu-latest
 
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    needs:
+      - build
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v6.2.3
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-        unset-current-credentials: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Check AWS identity
-      run: |
-        aws sts get-caller-identity
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          unset-current-credentials: true
 
-    - name: Update kubeconfig
-      run: |
-        aws eks update-kubeconfig \
-          --name "${{ env.EKS_CLUSTER }}" \
-          --region "${{ env.AWS_REGION }}"
+      - name: Check AWS identity
+        run: |
+          aws sts get-caller-identity
 
-    - name: Check Kubernetes files
-      run: |
-        echo "Kubernetes files:"
-        ls -la k8s
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name "${{ env.EKS_CLUSTER }}" \
+            --region "${{ env.AWS_REGION }}"
 
-    - name: Update frontend image
-      run: |
-        sed -i \
-          "s|image:.*|image: 509716464406.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" \
-          k8s/frontend.yaml
+      - name: Check Kubernetes files
+        run: |
+          echo "Kubernetes files:"
+          ls -la k8s
 
-    - name: Deploy frontend to EKS
-      run: |
-        kubectl apply -f k8s/frontend.yaml
+      - name: Update frontend image
+        run: |
+          sed -i \
+            "s|image:.*|image: 509716464406.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" \
+            k8s/frontend.yaml
 
-    - name: Verify deployment
-      run: |
-        kubectl rollout status deployment/frontend --timeout=180s
+      - name: Deploy frontend to EKS
+        run: |
+          kubectl apply -f k8s/frontend.yaml
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/frontend --timeout=180s
