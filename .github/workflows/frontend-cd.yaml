@@ -149,11 +149,24 @@ jobs:
         run: |
           aws sts get-caller-identity
 
+      - name: Check EKS cluster
+        run: |
+          aws eks describe-cluster \
+            --name "${{ env.EKS_CLUSTER }}" \
+            --region "${{ env.AWS_REGION }}" \
+            --query 'cluster.{Name:name,Status:status,Endpoint:endpoint,AuthenticationMode:accessConfig.authenticationMode}' \
+            --output table
+
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig \
             --name "${{ env.EKS_CLUSTER }}" \
             --region "${{ env.AWS_REGION }}"
+
+      - name: Check Kubernetes connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
 
       - name: Check Kubernetes files
         run: |
@@ -166,6 +179,10 @@ jobs:
             "s|image:.*|image: 509716464406.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" \
             k8s/frontend.yaml
 
+      - name: Show frontend manifest
+        run: |
+          cat k8s/frontend.yaml
+
       - name: Deploy frontend to EKS
         run: |
           kubectl apply -f k8s/frontend.yaml
@@ -173,3 +190,5 @@ jobs:
       - name: Verify deployment
         run: |
           kubectl rollout status deployment/frontend --timeout=180s
+          kubectl get pods
+          kubectl get services
