@@ -176,7 +176,7 @@ jobs:
       - name: Update frontend image
         run: |
           sed -i \
-            "s|image:.*|image: 509716464406.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" \
+            "s|image:.*|image: 384315945467.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" \
             k8s/frontend.yaml
 
       - name: Show frontend manifest
