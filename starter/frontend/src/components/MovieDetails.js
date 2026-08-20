@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+useEffect(() => {
+    if (!movie || !movie.id) {
+        return;
+    }
 
-function MovieDetail({ movie }) {
-  const [details, setDetails] = useState(null);
-  useEffect(() => {
-    axios.get(`${process.env.REACT_APP_MOVIE_API_URL}/movies/${movie.id}`).then((response) => {
-      setDetails(response.data);
-    });
-  }, [movie]);
+    const apiUrl =
+        `${process.env.REACT_APP_MOVIE_API_URL}/movies/${movie.id}`;
 
-  return (
-    <div>
-      <h2>{details?.movie.title}</h2>
-      <p>{details?.movie.description}</p>
-    </div>
-  );
-}
+    console.log("API URL:", apiUrl);
 
-export default MovieDetail;
+    axios
+        .get(apiUrl)
+        .then((response) => {
+            console.log("API SUCCESS:", response.data);
+            setDetails(response.data);
+        })
+        .catch((error) => {
+            console.error("API ERROR:", error);
+            console.error("API URL:", apiUrl);
+        });
+}, [movie]);
