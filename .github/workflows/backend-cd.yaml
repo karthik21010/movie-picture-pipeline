@@ -120,7 +120,7 @@ jobs:
       - name: Configure kubectl
         run: |
           aws eks update-kubeconfig \
-            --name cluster1 \
+            --name cluster \
             --region us-east-1
 
       - name: Setup Kustomize
