@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  REACT_APP_MOVIE_API_URL=http://3.238.202.57:5000
+  REACT_APP_MOVIE_API_URL: http://3.238.202.57:5000
 
 jobs:
   lint:
