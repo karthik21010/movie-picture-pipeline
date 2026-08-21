@@ -11,8 +11,8 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: frontend
-  EKS_CLUSTER: cluster
-  REACT_APP_MOVIE_API_URL: http://3.238.202.57:5000
+  EKS_CLUSTER: udacity
+  REACT_APP_MOVIE_API_URL: http://a7661bd6e17084786b68fd18090ec732-161764353.us-east-1.elb.amazonaws.com
 
 jobs:
 
@@ -86,7 +86,6 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -118,7 +117,6 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Update kubeconfig
@@ -130,7 +128,7 @@ jobs:
       - name: Update frontend image
         working-directory: starter/frontend/k8s
         run: |
-          sed -i "s|image:.*|image: 384315945467.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" frontend-deployment.yaml
+          sed -i "s|image:.*|image: 384315945467.dkr.ecr.us-east-1.amazonaws.com/frontend:${{ github.sha }}|" deployment.yaml
 
       - name: Deploy to EKS
         working-directory: starter/frontend/k8s
